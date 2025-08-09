@@ -229,6 +229,13 @@ class BaseConfig:
             else:
                 self.num_nodes = (max_gpu_num + self.num_gpus_per_node - 1) // self.num_gpus_per_node
 
+        # Validate rollout_batch_size divisibility for data parallelism
+        if hasattr(self, 'actor_train') and isinstance(self.actor_train, WorkerConfig):
+            trainer_world_size = getattr(self.actor_train, 'world_size', 1)
+            assert self.rollout_batch_size % trainer_world_size == 0, (
+                f"rollout_batch_size ({self.rollout_batch_size}) must be divisible by trainer world_size "
+                f"({trainer_world_size}) to ensure equal data distribution across DP workers and prevent hanging."
+            )
 
     def set_max_steps(self, max_steps: int):
         for attribute_name in dir(self):
